@@ -1,3 +1,5 @@
+package com.berlin.fractals;
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -21,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-
 
 /**
  * Basic mandelbrot fractal in java 2d format

@@ -126,6 +126,66 @@ public class CoreSimulationGraphicsRenderer {
             }
         }
 
+        /**
+         * Plant resource entity - static green resources scattered across the grid.
+         */
+        private class PlantResource {
+            private final int gridX;
+            private final int gridY;
+            private final int pixelX;
+            private final int pixelY;
+            private double plantEnergy;
+            private double weight;
+            private final Color screenColor;
+
+            public PlantResource(int gridX, int gridY, double plantEnergy, double weight) {
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.pixelX = gridMargin + gridX * cellSize;
+                this.pixelY = gridMargin + gridY * cellSize;
+                this.plantEnergy = plantEnergy;
+                this.weight = weight;
+                // Forest green RGB color: (34, 139, 34)
+                this.screenColor = new Color(34, 139, 34);
+            }
+
+            public int getGridX() {
+                return gridX;
+            }
+
+            public int getGridY() {
+                return gridY;
+            }
+
+            public int getPixelX() {
+                return pixelX;
+            }
+
+            public int getPixelY() {
+                return pixelY;
+            }
+
+            public double getPlantEnergy() {
+                return plantEnergy;
+            }
+
+            public void setPlantEnergy(double energy) {
+                this.plantEnergy = energy;
+            }
+
+            public double getWeight() {
+                return weight;
+            }
+
+            public void setWeight(double w) {
+                this.weight = w;
+            }
+
+            public Color getScreenColor() {
+                return screenColor;
+            }
+        }
+
         private transient Image offScreenImage;
         private transient Graphics2D offScreenGraphics;
 
@@ -137,6 +197,12 @@ public class CoreSimulationGraphicsRenderer {
         private boolean[][] cells;
         private boolean[][] nextCells;
         private java.util.List<CellEntity> activeEntities = new java.util.ArrayList<>();
+
+        // Plant resources
+        private java.util.List<PlantResource> plantResources = new java.util.ArrayList<>();
+
+        // Cell entity tracking
+        private int cellEntityCount = 0;
 
         private int randY = 160;
         private int randY2Box = 120;
@@ -183,6 +249,9 @@ public class CoreSimulationGraphicsRenderer {
                     cells[row][col] = random.nextDouble() < 0.15; // 15% chance of being alive
                 }
             }
+
+            // Initialize plant resources randomly across the grid
+            initializePlantResources(random);
 
             // Enable keyboard input
             setFocusable(true);
@@ -252,6 +321,23 @@ public class CoreSimulationGraphicsRenderer {
         }
 
         /**
+         * Initialize plant resources randomly scattered across the grid.
+         */
+        private void initializePlantResources(Random random) {
+            plantResources.clear();
+            // Distribute plants across approximately 10-15% of grid cells
+            int plantCount = (int) (gridRows * gridCols * 0.12);
+            for (int i = 0; i < plantCount; i++) {
+                int randomGridX = random.nextInt(gridCols);
+                int randomGridY = random.nextInt(gridRows);
+                double plantEnergy = 50.0 + random.nextDouble() * 50.0; // Energy between 50-100
+                double weight = 5.0 + random.nextDouble() * 5.0; // Weight between 5-10
+                plantResources.add(new PlantResource(randomGridX, randomGridY, plantEnergy, weight));
+            }
+            System.out.println("Initialized " + plantResources.size() + " plant resources");
+        }
+
+        /**
          * Advance observer horizontally and bounce at grid edges.
          */
         private void updateObserverPosition() {
@@ -285,6 +371,24 @@ public class CoreSimulationGraphicsRenderer {
             g2d.setColor(Color.black);
             g2d.setStroke(new BasicStroke(2.0f));
             g2d.draw(new Line2D.Double(30, 10, 80, randY));
+        }
+
+        /**
+         * Render all plant resources on the grid.
+         */
+        public void renderPlantResources(final Graphics2D g2d) {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+
+            for (PlantResource plant : plantResources) {
+                // Fill cell with forest green
+                g2d.setColor(plant.getScreenColor());
+                g2d.fillRect(plant.getPixelX() + 1, plant.getPixelY() + 1, cellSize - 1, cellSize - 1);
+
+                // Optional: Add a subtle border
+                g2d.setColor(new Color(20, 100, 20)); // Darker green border
+                g2d.setStroke(new BasicStroke(0.5f));
+                g2d.drawRect(plant.getPixelX() + 1, plant.getPixelY() + 1, cellSize - 1, cellSize - 1);
+            }
         }
 
         /**
@@ -475,6 +579,9 @@ public class CoreSimulationGraphicsRenderer {
             // Render cellular automata grid and cells
             this.renderCellularAutomata(g2dOffscreen);
 
+            // Render plant resources
+            this.renderPlantResources(g2dOffscreen);
+
             // Render observer (one-cell entity that moves horizontally)
             this.renderObserver(g2dOffscreen);
 
@@ -498,9 +605,19 @@ public class CoreSimulationGraphicsRenderer {
                 }
             }
 
+            // Calculate total plant energy
+            double totalPlantEnergy = plantResources.stream()
+                .mapToDouble(PlantResource::getPlantEnergy)
+                .sum();
+
+            // Update cell entity count
+            cellEntityCount = activeEntities.size();
+
             // Render dynamic text to offscreen buffer
             g2dOffscreen.setColor(Color.black);
-            g2dOffscreen.drawString("Conway's Game of Life - " + gridRows + "x" + gridCols + " cells", 20, 620);
+            g2dOffscreen.drawString("Active Cells: " + cellEntityCount, 20, 590);
+            g2dOffscreen.drawString("Plants: " + plantResources.size() + " | Total Energy: " + String.format("%.1f", totalPlantEnergy), 20, 605);
+            g2dOffscreen.drawString("Umbra 2D Life Simulation - " + gridRows + "x" + gridCols + " cells", 20, 620);
             g2dOffscreen.drawString("Player: (" + playerX + ", " + playerY + ") - Use Arrow Keys", 20, 620 + 14);
             g2dOffscreen.drawString("Total Frames: " + frameCount + " | FPS: " + String.format("%.1f", currentFps), 20, 620 + 28);
             g2dOffscreen.drawString("Observer Food: " + String.format("%.1f", foodResources), 20, 620 + 42);
