@@ -205,7 +205,7 @@ public class CoreSimulationGraphicsRenderer {
         private int cellEntityCount = 0;
 
         private int randY = 160;
-        private int randY2Box = 120;
+        private int randY2Box = 60;
 
         // Player box position
         private int playerX = 100;
@@ -289,8 +289,8 @@ public class CoreSimulationGraphicsRenderer {
                 updateCellularAutomata();
 
                 // For each update, change Y to random position
-                randY = random.nextInt(280);
-                randY2Box = random.nextInt(280);
+                randY = random.nextInt(180);
+                randY2Box = random.nextInt(100);
                 // Advance observer position horizontally within grid bounds
                 updateObserverPosition();
                 // Check for interaction with alive cell at observer position
@@ -398,7 +398,7 @@ public class CoreSimulationGraphicsRenderer {
             // Use Graphics2D for enhanced rendering with geometric shapes
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setColor(Color.blue);
-            g2d.fill(new Rectangle2D.Double(200, 150, 120, randY2Box));
+            g2d.fill(new Rectangle2D.Double(180, 140, 40, randY2Box));
         }
 
         /**
