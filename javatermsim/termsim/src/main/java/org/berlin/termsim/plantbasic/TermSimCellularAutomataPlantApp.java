@@ -10,6 +10,7 @@ import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
+import org.berlin.termsim.plantbasic.models.Seed;
 import org.berlin.termsim.plantbasic.models.WaterDroplet;
 
 import java.util.ArrayList;
@@ -37,11 +38,17 @@ public class TermSimCellularAutomataPlantApp {
     private final StringBuilder commandBuffer = new StringBuilder();
 
     private final List<WaterDroplet> waterDroplets = new ArrayList<>();
+    private final List<WaterDroplet> groundWaterDroplets = new ArrayList<>();
+    private final List<Seed> seeds = new ArrayList<>();
+    private final List<Seed> groundSeeds = new ArrayList<>();
     private final Random random = new Random();
 
     private int spawnCounter = 0;
     private int spawnInterval = 20;
+    private int seedSpawnCounter = 0;
+    private int seedSpawnInterval = 25;
     private float totalWaterLevel = 0.0f;
+    private float totalSeedLevel = 0.0f;
 
     private Screen screen;
 
@@ -84,6 +91,7 @@ public class TermSimCellularAutomataPlantApp {
         final TextGraphics graphics = screen.newTextGraphics();
         this.drawGrid(graphics);
         this.drawWaterDroplets(graphics);
+        this.drawSeeds(graphics);
         this.drawCommandArea(graphics);
 
         screen.refresh();
@@ -120,8 +128,17 @@ public class TermSimCellularAutomataPlantApp {
 
     void drawWaterDroplets(final TextGraphics graphics) {
         for (final WaterDroplet droplet : waterDroplets) {
-            if (droplet.getY() >= 0 && droplet.getY() < gridHeight && droplet.getX() >= 0 
-                        && droplet.getX() < width) {
+            if (droplet.getY() >= 0 && droplet.getY() < gridHeight && droplet.getX() >= 0
+                    && droplet.getX() < width) {
+                graphics.setForegroundColor(TextColor.ANSI.BLUE);
+                graphics.setCharacter(droplet.getX(), droplet.getY(), '#');
+                graphics.setForegroundColor(TextColor.ANSI.DEFAULT);
+            }
+        }
+
+        for (final WaterDroplet droplet : groundWaterDroplets) {
+            if (droplet.getY() >= 0 && droplet.getY() < gridHeight && droplet.getX() >= 0
+                    && droplet.getX() < width) {
                 graphics.setForegroundColor(TextColor.ANSI.BLUE);
                 graphics.setCharacter(droplet.getX(), droplet.getY(), '#');
                 graphics.setForegroundColor(TextColor.ANSI.DEFAULT);
@@ -129,15 +146,62 @@ public class TermSimCellularAutomataPlantApp {
         }
     }
 
+    void drawSeeds(final TextGraphics graphics) {
+        for (final Seed seed : seeds) {
+            if (seed.getY() >= 0 && seed.getY() < gridHeight && seed.getX() >= 0
+                    && seed.getX() < width) {
+                graphics.setForegroundColor(TextColor.ANSI.GREEN);
+                graphics.setCharacter(seed.getX(), seed.getY(), 's');
+                graphics.setForegroundColor(TextColor.ANSI.DEFAULT);
+            }
+        }
+
+        for (final Seed seed : groundSeeds) {
+            if (seed.getY() >= 0 && seed.getY() < gridHeight && seed.getX() >= 0
+                    && seed.getX() < width) {
+                graphics.setForegroundColor(TextColor.ANSI.GREEN);
+                graphics.setCharacter(seed.getX(), seed.getY(), 's');
+                graphics.setForegroundColor(TextColor.ANSI.DEFAULT);
+            }
+        }
+    }
+
     void updateAnimation() {
+        int groundStartY = Math.max(0, gridHeight - 4);
         // Update existing water droplets
         for (final WaterDroplet droplet : new ArrayList<>(waterDroplets)) {
             droplet.setY(droplet.getY() + 1);
-            int groundStartY = Math.max(0, gridHeight - 4);
             // Remove droplet if it reaches ground and accumulate water
             if (droplet.getY() >= groundStartY) {
                 totalWaterLevel += droplet.getElementLevel();
+                droplet.setY(groundStartY);
+                groundWaterDroplets.add(droplet);
                 waterDroplets.remove(droplet);
+            }
+        }
+
+        for (final WaterDroplet droplet : new ArrayList<>(groundWaterDroplets)) {
+            droplet.setGroundLiveState(droplet.getGroundLiveState() - 1);
+            if (droplet.getGroundLiveState() <= 0) {
+                groundWaterDroplets.remove(droplet);
+            }
+        }
+
+        // Update seeds
+        for (final Seed seed : new ArrayList<>(seeds)) {
+            seed.setY(seed.getY() + 1);
+            if (seed.getY() >= groundStartY) {
+                totalSeedLevel += seed.getSeedLevel();
+                seed.setY(groundStartY);
+                groundSeeds.add(seed);
+                seeds.remove(seed);
+            }
+        }
+
+        for (final Seed seed : new ArrayList<>(groundSeeds)) {
+            seed.setGroundLiveState(seed.getGroundLiveState() - 1);
+            if (seed.getGroundLiveState() <= 0) {
+                groundSeeds.remove(seed);
             }
         }
 
@@ -148,10 +212,21 @@ public class TermSimCellularAutomataPlantApp {
             // Reset
             final int randomX = random.nextInt(width);
             final float randomLevel = random.nextFloat() * 40.0f;
-            waterDroplets.add(new WaterDroplet(randomX, 0, randomLevel));
+            final int groundLiveState = random.nextInt(13);
+            waterDroplets.add(new WaterDroplet(randomX, 0, randomLevel, groundLiveState));
             spawnCounter = 0;
             // Vary spawn interval for more natural effect
             spawnInterval = 5 + random.nextInt(14);
+        }
+
+        seedSpawnCounter++;
+        if (seedSpawnCounter >= seedSpawnInterval) {
+            final int randomX = random.nextInt(width);
+            final float randomLevel = random.nextFloat() * 40.0f;
+            final int groundLiveState = random.nextInt(13);
+            seeds.add(new Seed(randomX, 0, randomLevel, groundLiveState));
+            seedSpawnCounter = 0;
+            seedSpawnInterval = 7 + random.nextInt(18);
         }
     }
 
@@ -165,7 +240,7 @@ public class TermSimCellularAutomataPlantApp {
         final String status = "-- " + mode + " --";
         this.writeString(graphics, 0, baseY, status);
 
-        final String posInfo = "pos(" + cursorX + "," + cursorY + ")=Char:(" + getCharAt(cursorX, cursorY)+")";
+        final String posInfo = "pos(" + cursorX + "," + cursorY + ")=Char:(" + getCharAt(cursorX, cursorY) + ")";
         int posX = Math.max(0, width - posInfo.length());
         this.writeString(graphics, posX, baseY, posInfo);
 
@@ -173,21 +248,25 @@ public class TermSimCellularAutomataPlantApp {
             this.writeString(graphics, 0, baseY + 1, ":" + commandBuffer.toString());
         }
 
+        final String waterInfo = "Water Level: " + String.format("%.2f", totalWaterLevel);
+        final int waterX = Math.max(0, width - waterInfo.length());
+        writeString(graphics, waterX, baseY + 1, waterInfo);
+
+        final String seedInfo = "Seed Level: " + String.format("%.2f", totalSeedLevel);
+        final int seedX = Math.max(0, width - seedInfo.length());
+        writeString(graphics, seedX, baseY + 2, seedInfo);
+
         final int groundStartY = Math.max(0, gridHeight - 4);
         // Check if any water droplets reached ground
-        for (final WaterDroplet droplet : waterDroplets) {
+        for (final WaterDroplet droplet : groundWaterDroplets) {
             if (droplet.getY() >= groundStartY && droplet.getY() < gridHeight) {
                 String message = "Ground Reached at Level";
                 int messageX = Math.max(0, (width - message.length()) / 2);
-                int messageY = Math.min(height - 1, baseY + 2);
+                int messageY = Math.min(height - 1, baseY + 3);
                 this.writeString(graphics, messageX, messageY, message);
                 break;
             }
         }
-
-        final String waterInfo = "Water Level: " + String.format("%.2f", totalWaterLevel);
-        final int waterX = Math.max(0, width - waterInfo.length());
-        writeString(graphics, waterX, baseY + 1, waterInfo);
     }
 
     char getCharAt(final int x, final int y) {
@@ -199,6 +278,21 @@ public class TermSimCellularAutomataPlantApp {
         for (final WaterDroplet droplet : waterDroplets) {
             if (x == droplet.getX() && y == droplet.getY()) {
                 return '#';
+            }
+        }
+        for (final WaterDroplet droplet : groundWaterDroplets) {
+            if (x == droplet.getX() && y == droplet.getY()) {
+                return '#';
+            }
+        }
+        for (final Seed seed : seeds) {
+            if (x == seed.getX() && y == seed.getY()) {
+                return 's';
+            }
+        }
+        for (final Seed seed : groundSeeds) {
+            if (x == seed.getX() && y == seed.getY()) {
+                return 's';
             }
         }
         if (x == midX && y == midY) {
@@ -238,7 +332,8 @@ public class TermSimCellularAutomataPlantApp {
             case ArrowDown -> cursorY = Math.min(gridHeight - 1, cursorY + 1);
             case ArrowLeft -> cursorX = Math.max(0, cursorX - 1);
             case ArrowRight -> cursorX = Math.min(Math.max(0, width - 3), cursorX + 1);
-            default -> {}
+            default -> {
+            }
         }
     }
 
@@ -252,7 +347,8 @@ public class TermSimCellularAutomataPlantApp {
                 }
             }
             case Character -> commandBuffer.append(key.getCharacter());
-            default -> {}
+            default -> {
+            }
         }
     }
 
@@ -273,7 +369,8 @@ public class TermSimCellularAutomataPlantApp {
             try {
                 screen.stopScreen();
                 System.exit(0);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         commandBuffer.setLength(0);
         mode = Mode.NORMAL;

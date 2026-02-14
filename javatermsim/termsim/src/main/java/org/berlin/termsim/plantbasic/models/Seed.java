@@ -1,19 +1,19 @@
 package org.berlin.termsim.plantbasic.models;
 
-public class WaterDroplet {
+public class Seed {
     private int x;
     private int y;
-    private float elementLevel;
+    private float seedLevel;
     private int groundLiveState = 0;
 
-    public WaterDroplet(int x, int y, float elementLevel) {
+    public Seed(int x, int y, float seedLevel) {
         this.x = x;
         this.y = y;
-        this.elementLevel = elementLevel;
+        this.seedLevel = seedLevel;
     }
 
-    public WaterDroplet(int x, int y, float elementLevel, final int groundLiveState) {
-        this(x, y, elementLevel);
+    public Seed(int x, int y, float seedLevel, int groundLiveState) {
+        this(x, y, seedLevel);
         this.groundLiveState = groundLiveState;
     }
 
@@ -33,12 +33,12 @@ public class WaterDroplet {
         this.y = y;
     }
 
-    public float getElementLevel() {
-        return elementLevel;
+    public float getSeedLevel() {
+        return seedLevel;
     }
 
-    public void setElementLevel(float elementLevel) {
-        this.elementLevel = elementLevel;
+    public void setSeedLevel(float seedLevel) {
+        this.seedLevel = seedLevel;
     }
 
     public int getGroundLiveState() {
