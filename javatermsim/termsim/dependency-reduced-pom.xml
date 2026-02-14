@@ -58,7 +58,7 @@
               <createDependencyReducedPom>true</createDependencyReducedPom>
               <transformers>
                 <transformer>
-                  <mainClass>com.berlin.cellular.basic.ApplicationSimUIMain</mainClass>
+                  <mainClass>org.berlin.termsim.TermSimGameLifeApp</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -106,7 +106,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.1</version>
         <configuration>
-          <mainClass>org.berlin.termsim.TermSimApp</mainClass>
+          <mainClass>org.berlin.termsim.plantbasic.TermSimCellularAutomataPlantApp</mainClass>
         </configuration>
       </plugin>
     </plugins>
