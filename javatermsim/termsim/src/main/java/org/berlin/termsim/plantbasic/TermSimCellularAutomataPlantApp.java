@@ -19,6 +19,8 @@ import java.util.Random;
 
 /**
  * Terminal Simulator cellular automata plant.
+ * Current state includes water and seed droplets hitting the ground and increasing
+ * the water level in the soil.  The seeds in next phase will sprout into plants.
  */
 public class TermSimCellularAutomataPlantApp {
 
