@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+
 /**
  * Basic mandelbrot fractal in java 2d format
  */
